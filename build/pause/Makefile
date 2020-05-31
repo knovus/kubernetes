@@ -14,9 +14,9 @@
 
 .PHONY: all push container clean orphan all-push push-manifest
 
-REGISTRY ?= staging-k8s.gcr.io
+REGISTRY ?= knovus
 IMAGE = $(REGISTRY)/pause
-IMAGE_WITH_ARCH = $(IMAGE)-$(ARCH)
+IMAGE_WITH_ARCH = $(IMAGE)
 
 TAG = 3.3
 REV = $(shell git describe --contains --always --match='v*')
@@ -24,10 +24,10 @@ REV = $(shell git describe --contains --always --match='v*')
 # Architectures supported: amd64, arm, arm64, ppc64le and s390x
 ARCH ?= amd64
 
-ALL_ARCH = amd64 arm arm64 ppc64le s390x
+ALL_ARCH = amd64 386
 
 CFLAGS = -Os -Wall -Werror -static -DVERSION=v$(TAG)-$(REV)
-KUBE_CROSS_IMAGE ?= us.gcr.io/k8s-artifacts-prod/build-image/kube-cross
+KUBE_CROSS_IMAGE ?= knovus/kube-cross
 KUBE_CROSS_VERSION ?= $(shell cat ../build-image/cross/VERSION)
 
 BIN = pause
@@ -37,20 +37,8 @@ ifeq ($(ARCH),amd64)
 	TRIPLE ?= x86_64-linux-gnu
 endif
 
-ifeq ($(ARCH),arm)
-	TRIPLE ?= arm-linux-gnueabihf
-endif
-
-ifeq ($(ARCH),arm64)
-	TRIPLE ?= aarch64-linux-gnu
-endif
-
-ifeq ($(ARCH),ppc64le)
-	TRIPLE ?= powerpc64le-linux-gnu
-endif
-
-ifeq ($(ARCH),s390x)
-	TRIPLE ?= s390x-linux-gnu
+ifeq ($(ARCH),386)
+	TRIPLE ?= i686-linux-gnu
 endif
 
 # If you want to build AND push all containers, see the 'all-push' rule.
@@ -86,7 +74,7 @@ bin/$(BIN)-$(ARCH): $(SRCS)
 
 container: .container-$(ARCH)
 .container-$(ARCH): bin/$(BIN)-$(ARCH)
-	DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --load --pull --platform linux/$(ARCH) -t $(IMAGE_WITH_ARCH):$(TAG) --build-arg ARCH=$(ARCH) .
+	DOCKER_CLI_EXPERIMENTAL=enabled docker buildx build --pull --platform linux/$(ARCH) -t $(IMAGE_WITH_ARCH):$(TAG) --build-arg ARCH=$(ARCH) --push .
 	touch $@
 
 push: .push-$(ARCH)
